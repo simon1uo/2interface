@@ -1,18 +1,27 @@
 # 2interface
 
-This template should help get you started developing with Vue 3 in Vite.
+A tool for transforming JSON data into TypeScript types and interfaces.
+
+[中文](README.zh-CN.md)
+
+## Tech Stack
+
+- **Vue 3**: Frontend framework providing reactive data management and component-based development
+- **TypeScript**: Type checking and development with enhanced code intelligence and type safety
+- **Vite**: Build tool offering fast development experience and efficient production builds
+- **Monaco Editor**: VS Code editor component integration for powerful code editing capabilities
+- **WindiCSS**: Atomic CSS framework for flexible styling solutions
+- **VueUse**: Collection of Vue Composition API utilities to simplify component development
+- **Heroicons**: Icon library for beautiful interface elements
 
 ## Recommended IDE Setup
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (disable Vetur)
+- [Vue DevTools](https://github.com/vuejs/vue-devtools) for Vue application debugging
 
-## Type Support for `.vue` Imports in TS
+## TypeScript Support
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
+This project uses `vue-tsc` for type checking. In your editor, you need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to get TypeScript support for `.vue` files.
 
 ## Project Setup
 
@@ -20,14 +29,33 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 pnpm install
 ```
 
-### Compile and Hot-Reload for Development
+### Development
 
 ```sh
 pnpm dev
 ```
 
-### Type-Check, Compile and Minify for Production
+### Production Build
 
 ```sh
 pnpm build
 ```
+
+## Project Structure
+
+```
+2interface/
+├── src/                # Source code
+│   ├── components/    # Vue components
+│   ├── composables/   # Composition functions
+│   ├── types/        # TypeScript type definitions
+│   └── App.vue       # Root component
+├── public/           # Static assets
+└── index.html        # HTML entry point
+```
+
+## Code Style
+
+- ESLint for code linting
+- TypeScript for type checking
+- Following Vue 3 Composition API best practices
