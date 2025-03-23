@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useDark, usePreferredDark } from '@vueuse/core'
-import { 
-  SunIcon, 
-  MoonIcon, 
-  ArrowPathIcon, 
+import {
+  SunIcon,
+  MoonIcon,
+  ArrowPathIcon,
   CodeBracketIcon,
-  DocumentTextIcon 
+  DocumentTextIcon,
+  LanguageIcon
 } from '@heroicons/vue/24/outline'
+import { currentLang, setLanguage, t } from './i18n'
 
 const jsonInput = ref('')
 const typeScriptOutput = ref('')
@@ -57,7 +59,7 @@ function resetAll() {
 // 格式化JSON
 function formatJson() {
   if (!jsonInput.value.trim()) {
-    error.value = '请先输入JSON数据'
+    error.value = t('editor.error.emptyInput')
     return
   }
 
@@ -67,14 +69,14 @@ function formatJson() {
     error.value = ''
   }
   catch (e) {
-    error.value = '无效的JSON格式'
+    error.value = t('editor.error.invalidJson')
   }
 }
 
 // 将JSON转换为TypeScript接口
 function convertToTypeScript() {
   if (!jsonInput.value.trim()) {
-    error.value = '请先输入JSON数据'
+    error.value = t('editor.error.emptyInput')
     return
   }
 
@@ -85,7 +87,7 @@ function convertToTypeScript() {
     error.value = ''
   }
   catch (e) {
-    error.value = '转换失败，请检查JSON格式'
+    error.value = t('editor.error.conversionFailed')
     console.error(e)
   }
 }
@@ -203,35 +205,46 @@ function capitalizeFirstLetter(string: string): string {
   <div class="h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
     <!-- Toolbar -->
     <div class="bg-white dark:bg-gray-800 shadow p-2 sm:p-3 flex flex-wrap items-center gap-2 sm:gap-4">
-      <button class="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded font-medium flex items-center gap-1 text-gray-800 dark:text-gray-200"
+      <button
+        class="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded font-medium flex items-center gap-1 text-gray-800 dark:text-gray-200"
         @click="resetAll">
         <ArrowPathIcon class="w-4 h-4 sm:w-5 sm:h-5" />
-        <span>重置</span>
+        <span>{{ t('toolbar.reset') }}</span>
       </button>
       <div class="flex items-center gap-2">
-        <input v-model="interfaceName" type="text" placeholder="接口名称"
+        <input v-model="interfaceName" type="text" :placeholder="t('toolbar.interfaceName')"
           class="px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
       </div>
       <button
         class="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-indigo-100 dark:bg-indigo-900 hover:bg-indigo-200 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 rounded font-medium flex items-center gap-1"
         @click="formatJson">
         <DocumentTextIcon class="w-4 h-4 sm:w-5 sm:h-5" />
-        <span>格式化</span>
+        <span>{{ t('toolbar.format') }}</span>
       </button>
-      <button class="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white rounded font-medium flex items-center gap-1"
+      <button
+        class="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white rounded font-medium flex items-center gap-1"
         @click="convertToTypeScript">
         <CodeBracketIcon class="w-4 h-4 sm:w-5 sm:h-5" />
-        <span>转换</span>
+        <span>{{ t('toolbar.convert') }}</span>
       </button>
       <div v-if="error" class="text-sm sm:text-base text-red-500 dark:text-red-400 ml-2 sm:ml-4">
         {{ error }}
       </div>
-      <button class="ml-auto px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded font-medium flex items-center gap-1 text-gray-800 dark:text-gray-200"
-        @click="isDark = !isDark">
-        <SunIcon v-if="isDark" class="w-4 h-4 sm:w-5 sm:h-5" />
-        <MoonIcon v-else class="w-4 h-4 sm:w-5 sm:h-5" />
-        <span>{{ isDark ? '浅色模式' : '暗色模式' }}</span>
-      </button>
+      <div class="flex items-center gap-2 ml-auto">
+        <button
+          class="ml-auto px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded font-medium flex items-center gap-1 text-gray-800 dark:text-gray-200"
+          @click="setLanguage(currentLang === 'en' ? 'zh' : 'en')">
+          <!-- <span class="i-carbon-language text-lg" /> -->
+          <LanguageIcon class="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+        <button
+          class="ml-auto px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded font-medium flex items-center gap-1 text-gray-800 dark:text-gray-200"
+          @click="isDark = !isDark">
+          <SunIcon v-if="isDark" class="w-4 h-4 sm:w-5 sm:h-5" />
+          <MoonIcon v-else class="w-4 h-4 sm:w-5 sm:h-5" />
+          <!-- <span>{{ isDark ? t('toolbar.lightMode') : t('toolbar.darkMode') }}</span> -->
+        </button> 
+      </div>
     </div>
 
     <!-- Main Content Area -->
@@ -239,18 +252,18 @@ function capitalizeFirstLetter(string: string): string {
       <!-- Input Panel -->
       <div class="w-full lg:w-1/2 flex flex-col p-2 sm:p-4">
         <div class="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-          JSON 输入
+          {{ t('editor.jsonInput') }}
         </div>
-        <textarea v-model="jsonInput" placeholder="在此处粘贴你的JSON数据..."
+        <textarea v-model="jsonInput" placeholder="{{ t('editor.placeholder') }}"
           class="flex-1 p-2 sm:p-3 font-mono text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" />
       </div>
 
       <!-- Output Panel -->
       <div class="w-full lg:w-1/2 flex flex-col p-2 sm:p-4">
         <div class="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-          TypeScript 输出
+          {{ t('editor.typeScriptOutput') }}
         </div>
-        <textarea v-model="typeScriptOutput" placeholder="生成的TypeScript类型将在这里显示..." readonly
+        <textarea v-model="typeScriptOutput" :placeholder="t('editor.typeScriptPlaceholder')" readonly
           class="flex-1 p-2 sm:p-3 font-mono text-xs sm:text-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded resize-none focus:outline-none text-gray-900 dark:text-gray-100" />
       </div>
     </div>
