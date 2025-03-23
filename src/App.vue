@@ -1,50 +1,125 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useDark, usePreferredDark } from '@vueuse/core'
 import {
-  SunIcon,
-  MoonIcon,
   ArrowPathIcon,
   CodeBracketIcon,
   DocumentTextIcon,
-  LanguageIcon
+  LanguageIcon,
+  MoonIcon,
+  SunIcon,
 } from '@heroicons/vue/24/outline'
+import { useDark, usePreferredDark } from '@vueuse/core'
+import * as monaco from 'monaco-editor'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { currentLang, setLanguage, t } from './i18n'
 
 const jsonInput = ref('')
 const typeScriptOutput = ref('')
 const error = ref('')
 const interfaceName = ref('RootObject')
+const indentSize = ref(2)
+let jsonEditor: monaco.editor.IStandaloneCodeEditor | null = null
+let outputEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
 // 使用 VueUse 的暗色模式工具
 const isDark = useDark()
-const preferredDark = usePreferredDark()
+const _preferredDark = usePreferredDark()
 
 // 示例数据
 const exampleJson = {
-  "name": "张三",
-  "age": 25,
-  "isStudent": false,
-  "hobbies": ["读书", "游泳", "编程"],
-  "address": {
-    "city": "北京",
-    "street": "朝阳区",
-    "zipCode": "100020"
+  name: '张三',
+  age: 25,
+  isStudent: false,
+  hobbies: ['读书', '游泳', '编程'],
+  address: {
+    city: '北京',
+    street: '朝阳区',
+    zipCode: '100020',
   },
-  "contact": {
-    "email": "zhangsan@example.com",
-    "phone": "13800138000"
+  contact: {
+    email: 'zhangsan@example.com',
+    phone: '13800138000',
   },
-  "scores": [
-    { "subject": "数学", "score": 95 },
-    { "subject": "语文", "score": 88 }
-  ]
+  scores: [
+    { subject: '数学', score: 95 },
+    { subject: '语文', score: 88 },
+  ],
 }
 
 // 初始化示例数据
 onMounted(() => {
   if (!jsonInput.value) {
     jsonInput.value = JSON.stringify(exampleJson, null, 2)
+  }
+
+  // 初始化 JSON 编辑器
+  jsonEditor = monaco.editor.create(document.getElementById('json-editor')!, {
+    value: jsonInput.value,
+    language: 'json',
+    theme: isDark.value ? 'vs-dark' : 'vs',
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    tabSize: 2,
+    fontSize: 14,
+    lineNumbers: 'on',
+    roundedSelection: false,
+    readOnly: false,
+    cursorStyle: 'line',
+    formatOnPaste: true,
+    formatOnType: true,
+    quickSuggestions: { other: true, comments: true, strings: true },
+    suggestOnTriggerCharacters: true,
+    acceptSuggestionOnEnter: 'on',
+    tabCompletion: 'on',
+    wordBasedSuggestions: 'currentDocument',
+  })
+
+  // 初始化输出编辑器
+  outputEditor = monaco.editor.create(document.getElementById('output-editor')!, {
+    value: typeScriptOutput.value,
+    language: 'typescript',
+    theme: isDark.value ? 'vs-dark' : 'vs',
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    tabSize: 2,
+    fontSize: 14,
+    lineNumbers: 'on',
+    roundedSelection: false,
+    readOnly: true,
+    cursorStyle: 'line',
+    quickSuggestions: { other: true, comments: true, strings: true },
+    suggestOnTriggerCharacters: true,
+    acceptSuggestionOnEnter: 'on',
+    tabCompletion: 'on',
+    wordBasedSuggestions: 'currentDocument',
+  })
+
+  // 监听编辑器内容变化
+  jsonEditor.onDidChangeModelContent(() => {
+    jsonInput.value = jsonEditor!.getValue()
+  })
+
+  // 监听暗色模式变化
+  watch(isDark, (newValue) => {
+    monaco.editor.setTheme(newValue ? 'vs-dark' : 'vs')
+  })
+})
+
+// 清理编辑器实例
+onBeforeUnmount(() => {
+  if (jsonEditor) {
+    jsonEditor.dispose()
+  }
+  if (outputEditor) {
+    outputEditor.dispose()
+  }
+})
+
+// 更新输出内容
+watch(typeScriptOutput, (newValue) => {
+  if (outputEditor) {
+    outputEditor.setValue(newValue)
   }
 })
 
@@ -68,7 +143,7 @@ function formatJson() {
     jsonInput.value = JSON.stringify(parsed, null, 2)
     error.value = ''
   }
-  catch (e) {
+  catch (e: any) {
     error.value = t('editor.error.invalidJson')
   }
 }
@@ -118,7 +193,7 @@ function getType(value: any): string {
 // 递归生成TypeScript接口
 function generateTypeScriptInterface(obj: any, interfaceName: string, depth = 0): string {
   let result = ''
-  const indentation = '  '.repeat(depth)
+  const indentation = ' '.repeat(indentSize.value * depth)
 
   if (typeof obj !== 'object' || obj === null) {
     return `type ${interfaceName} = ${typeof obj};`
@@ -189,7 +264,7 @@ function generateTypeScriptInterface(obj: any, interfaceName: string, depth = 0)
 
   // 如果有嵌套接口，将它们添加到结果中
   if (nestedInterfaces.length > 0) {
-    result += '\n\n' + nestedInterfaces.join('\n\n')
+    result += `\n\n${nestedInterfaces.join('\n\n')}`
   }
 
   return result
@@ -204,28 +279,45 @@ function capitalizeFirstLetter(string: string): string {
 <template>
   <div class="h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
     <!-- Toolbar -->
-    <div class="bg-white dark:bg-gray-800 shadow p-2 sm:p-3 flex flex-wrap items-center gap-2 sm:gap-4">
+    <div class="bg-white dark:bg-gray-800 shadow p-2 sm:p-3 flex flex-wrap items-center gap-2 sm:gap-4 box-shadow">
       <button
         class="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded font-medium flex items-center gap-1 text-gray-800 dark:text-gray-200"
-        @click="resetAll">
+        @click="resetAll"
+      >
         <ArrowPathIcon class="w-4 h-4 sm:w-5 sm:h-5" />
-        <span>{{ t('toolbar.reset') }}</span>
+        <span class="sm:hidden">{{ t('toolbar.reset') }}</span>
       </button>
       <div class="flex items-center gap-2">
-        <input v-model="interfaceName" type="text" :placeholder="t('toolbar.interfaceName')"
-          class="px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+        <input
+          v-model="interfaceName" type="text" :placeholder="t('toolbar.interfaceName')"
+          class="px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        >
+        <select
+          v-model="indentSize"
+          class="px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          :placeholder="t('toolbar.indent')" :title="t('toolbar.indent')"
+        >
+          <option :value="2">
+            2
+          </option>
+          <option :value="4">
+            4
+          </option>
+        </select>
       </div>
       <button
         class="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-indigo-100 dark:bg-indigo-900 hover:bg-indigo-200 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 rounded font-medium flex items-center gap-1"
-        @click="formatJson">
+        @click="formatJson"
+      >
         <DocumentTextIcon class="w-4 h-4 sm:w-5 sm:h-5" />
-        <span>{{ t('toolbar.format') }}</span>
+        <span class="sm:hidden">{{ t('toolbar.format') }}</span>
       </button>
       <button
         class="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white rounded font-medium flex items-center gap-1"
-        @click="convertToTypeScript">
+        @click="convertToTypeScript"
+      >
         <CodeBracketIcon class="w-4 h-4 sm:w-5 sm:h-5" />
-        <span>{{ t('toolbar.convert') }}</span>
+        <span class="sm:hidden"> {{ t('toolbar.convert') }}</span>
       </button>
       <div v-if="error" class="text-sm sm:text-base text-red-500 dark:text-red-400 ml-2 sm:ml-4">
         {{ error }}
@@ -233,29 +325,33 @@ function capitalizeFirstLetter(string: string): string {
       <div class="flex items-center gap-2 ml-auto">
         <button
           class="ml-auto px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded font-medium flex items-center gap-1 text-gray-800 dark:text-gray-200"
-          @click="setLanguage(currentLang === 'en' ? 'zh' : 'en')">
+          @click="setLanguage(currentLang === 'en' ? 'zh' : 'en')"
+        >
           <!-- <span class="i-carbon-language text-lg" /> -->
           <LanguageIcon class="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
         <button
           class="ml-auto px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded font-medium flex items-center gap-1 text-gray-800 dark:text-gray-200"
-          @click="isDark = !isDark">
+          @click="isDark = !isDark"
+        >
           <SunIcon v-if="isDark" class="w-4 h-4 sm:w-5 sm:h-5" />
           <MoonIcon v-else class="w-4 h-4 sm:w-5 sm:h-5" />
           <!-- <span>{{ isDark ? t('toolbar.lightMode') : t('toolbar.darkMode') }}</span> -->
-        </button> 
+        </button>
       </div>
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+    <div class="flex-1 flex flex-col lg:flex-row overflow-auto">
       <!-- Input Panel -->
       <div class="w-full lg:w-1/2 flex flex-col p-2 sm:p-4">
         <div class="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
           {{ t('editor.jsonInput') }}
         </div>
-        <textarea v-model="jsonInput" placeholder="{{ t('editor.placeholder') }}"
-          class="flex-1 p-2 sm:p-3 font-mono text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" />
+        <div
+          id="json-editor"
+          class="flex-1 min-h-lg border border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden"
+        />
       </div>
 
       <!-- Output Panel -->
@@ -263,8 +359,7 @@ function capitalizeFirstLetter(string: string): string {
         <div class="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
           {{ t('editor.typeScriptOutput') }}
         </div>
-        <textarea v-model="typeScriptOutput" :placeholder="t('editor.typeScriptPlaceholder')" readonly
-          class="flex-1 p-2 sm:p-3 font-mono text-xs sm:text-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded resize-none focus:outline-none text-gray-900 dark:text-gray-100" />
+        <div id="output-editor" class="flex-1 min-h-lg border border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden" />
       </div>
     </div>
   </div>

@@ -13,6 +13,7 @@ type Messages = {
       lightMode: string
       darkMode: string
       interfaceName: string
+      indent: string
     }
     editor: {
       jsonInput: string
@@ -36,7 +37,8 @@ export const messages: Messages = {
       convert: 'Convert',
       lightMode: 'Light Mode',
       darkMode: 'Dark Mode',
-      interfaceName: 'Interface Name'
+      interfaceName: 'Interface Name',
+      indent: 'Indent',
     },
     editor: {
       jsonInput: 'JSON Input',
@@ -46,9 +48,9 @@ export const messages: Messages = {
       error: {
         emptyInput: 'Please input JSON data first',
         invalidJson: 'Invalid JSON format',
-        conversionFailed: 'Conversion failed, please check JSON format'
-      }
-    }
+        conversionFailed: 'Conversion failed, please check JSON format',
+      },
+    },
   },
   zh: {
     toolbar: {
@@ -57,7 +59,8 @@ export const messages: Messages = {
       convert: '转换',
       lightMode: '浅色模式',
       darkMode: '暗色模式',
-      interfaceName: '接口名称'
+      interfaceName: '接口名称',
+      indent: '缩进',
     },
     editor: {
       jsonInput: 'JSON 输入',
@@ -67,10 +70,10 @@ export const messages: Messages = {
       error: {
         emptyInput: '请先输入JSON数据',
         invalidJson: '无效的JSON格式',
-        conversionFailed: '转换失败，请检查JSON格式'
-      }
-    }
-  }
+        conversionFailed: '转换失败，请检查JSON格式',
+      },
+    },
+  },
 }
 
 export function setLanguage(lang: Language) {
@@ -80,11 +83,12 @@ export function setLanguage(lang: Language) {
 export function t(key: string) {
   const keys = key.split('.')
   let value: any = messages[currentLang.value]
-  
+
   for (const k of keys) {
     value = value[k]
-    if (!value) return key
+    if (!value)
+      return key
   }
-  
+
   return value
-} 
+}
